@@ -13,19 +13,28 @@ void pp (){
 void main(){
 	//string s = "Hello";
 	float d = 10.0;
+	int i =9;
+	//float z = d/0;
+	f += 1+2.1;
+	f--;
+	while(i<=15){
+		i++;
+		print(i);
+	}
+	print(f);
 	if(f > d){
-		print("if1");
-	}else if(x == 10){
+		print("f>d");
+	}else if(x == 20){
 		if(x>15){
-			print("if2");
+			print("x>15");
 		}else{
-			print("ee1");
+			print("x<15");
 		}
 	}else {
 		print(x);
 	}
-	float g= f%1.2;
+	//float g= f%1.2;
 	pp();
 	//int QQ = foo(x,d) + 3;
-	print(k);
+	//print(k);
 }

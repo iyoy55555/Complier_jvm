@@ -21,6 +21,8 @@ extern int PrintSytax;
 int sy_error=0;
 FILE *OutputFile;
 int num_of_label=0;
+int check_error =0 ;
+int div_by_zero = 0;
 
 struct symbol{
 	int index;
@@ -442,7 +444,10 @@ primary_expression
         }
     }
 	| initializer {
-        fprintf(OutputFile,"ldc %s\n",$1);           
+        div_by_zero = 0;
+        fprintf(OutputFile,"ldc %s\n",$1);
+        if(strcmp($1,"0")==0)
+            div_by_zero = 1;           
         char * dot = strchr($1,'.');
         if (dot ==NULL){
             $$ ='I';
@@ -506,6 +511,10 @@ multiplicative_expression
             fprintf(OutputFile,"fdiv\n");
         else
             fprintf(OutputFile,"idiv\n");
+        if(div_by_zero){
+            strcat(se_error_buff,"Arithmetic error ");
+            PrintSemeticError=1;
+        }
     }
 	| multiplicative_expression '%' unary_expression{
         if($3 == 'F' && $1 =='I'){
@@ -680,14 +689,16 @@ assignment_expression
                 t = 'Z';
             if(strcmp(s->data_type,"string") == 0)
                 t = 'L';
-            if(s->scope_level == 0){
-                fprintf(OutputFile,"putstatic compiler_hw3/%s %c\n",s->name,t);
-            }else {
+
                 if(t == 'F'){
                     if($3 == 'I')
                         fprintf(OutputFile, "i2f\n");
-                    if($2 != '=')
-                        fprintf(OutputFile,"fload %d\nswap\n",s->index);
+                    if($2 != '='){
+                        if(s->scope_level==0)
+                            fprintf(OutputFile,"getstatic compiler_hw3/%s %c\n",s->name,t); 
+                        else
+                            fprintf(OutputFile,"fload %d\nswap\n",s->index);
+                    }
                     if($2 == '+')
                         fprintf(OutputFile,"fadd\n");
                     if($2 == '-')
@@ -699,15 +710,25 @@ assignment_expression
                     if($2 == '%'){
                         strcat(se_error_buff,"Arithmetic error");
                         PrintSemeticError=1;
-                    }                                         /*mod float error*/                                             
-                    fprintf(OutputFile,"fstore %d\n",s->index);
+                    } 
+                                                            /*mod float error*/   
+                    if(s->scope_level == 0)
+                        fprintf(OutputFile,"putstatic compiler_hw3/%s %c\n",s->name,t); 
+                    else                                         
+                        fprintf(OutputFile,"fstore %d\n",s->index);
                 }
                 else{
                     if($3 == 'F')
                         fprintf(OutputFile, "f2i\n");
 
-                    if($2 != '=')
-                        fprintf(OutputFile,"iload %d\nswap\n",s->index);
+                    if($2 != '='){
+                        if(s->scope_level==0)
+                            fprintf(OutputFile,"getstatic compiler_hw3/%s %c\n",s->name,t); 
+                        else
+                            fprintf(OutputFile,"iload %d\nswap\n",s->index);
+                    }
+
+
                     if($2 == '+')
                         fprintf(OutputFile,"iadd\n");
                     if($2 == '-')
@@ -717,10 +738,14 @@ assignment_expression
                     if($2 == '/')
                         fprintf(OutputFile,"idiv\n"); 
                     if($2 == '%')
-                        fprintf(OutputFile,"irem\n");     
-                    fprintf(OutputFile,"istore %d\n",s->index);
+                        fprintf(OutputFile,"irem\n");
+
+                    if(s->scope_level == 0)
+                        fprintf(OutputFile,"putstatic compiler_hw3/%s %c\n",s->name,t); 
+                    else                                         
+                        fprintf(OutputFile,"istore %d\n",s->index);
                 }
-            }
+            
         }
     }
 ;
@@ -761,22 +786,32 @@ postfix_expression
                 t = 'Z';
             if(strcmp(s->data_type,"string") == 0)
                 t = 'L';
-            if(s->scope_level == 0){
-                fprintf(OutputFile,"getstatic compiler_hw3/%s %c\n",s->name,t);
-            }else {
+
+
                 if(t == 'F'){
-                    fprintf(OutputFile,"fload %d\n",s->index);
+                    if(s->scope_level == 0)
+                        fprintf(OutputFile,"getstatic compiler_hw3/%s %c\n",s->name,t); 
+                    else                                      
+                        fprintf(OutputFile,"fload %d\n",s->index);
                     fprintf(OutputFile, "ldc 1.0\n");
                     fprintf(OutputFile, "fadd\n");
-                    fprintf(OutputFile,"fstore %d\n",s->index);
+                    if(s->scope_level == 0)
+                        fprintf(OutputFile,"putstatic compiler_hw3/%s %c\n",s->name,t); 
+                    else                                         
+                        fprintf(OutputFile,"fstore %d\n",s->index);
                 }
                 else{
-                    fprintf(OutputFile,"iload %d\n",s->index);
+                    if(s->scope_level == 0)
+                        fprintf(OutputFile,"getstatic compiler_hw3/%s %c\n",s->name,t); 
+                    else                                      
+                        fprintf(OutputFile,"iload %d\n",s->index);
                     fprintf(OutputFile, "ldc 1\n");
                     fprintf(OutputFile, "iadd\n");
-                    fprintf(OutputFile,"istore %d\n",s->index);
+                    if(s->scope_level == 0)
+                        fprintf(OutputFile,"putstatic compiler_hw3/%s %c\n",s->name,t); 
+                    else                                         
+                        fprintf(OutputFile,"istore %d\n",s->index);
                 }
-            }
             $$ = t;
         }
     }
@@ -800,22 +835,32 @@ postfix_expression
                 t = 'Z';
             if(strcmp(s->data_type,"string") == 0)
                 t = 'L';
-            if(s->scope_level == 0){
-                fprintf(OutputFile,"getstatic compiler_hw3/%s %c\n",s->name,t);
-            }else {
+
                 if(t == 'F'){
+                    if(s->scope_level == 0)
+                        fprintf(OutputFile,"getstatic compiler_hw3/%s %c\n",s->name,t); 
+                    else                                      
+                        fprintf(OutputFile,"fload %d\n",s->index);
                     fprintf(OutputFile, "ldc 1.0\n");
-                    fprintf(OutputFile,"fload %d\n",s->index);
                     fprintf(OutputFile, "fsub\n");
-                    fprintf(OutputFile,"fstore %d\n",s->index);
+                    if(s->scope_level == 0)
+                        fprintf(OutputFile,"putstatic compiler_hw3/%s %c\n",s->name,t); 
+                    else                                         
+                        fprintf(OutputFile,"fstore %d\n",s->index);
                 }
                 else{
+                    if(s->scope_level == 0)
+                        fprintf(OutputFile,"getstatic compiler_hw3/%s %c\n",s->name,t); 
+                    else                                      
+                        fprintf(OutputFile,"iload %d\n",s->index);
                     fprintf(OutputFile, "ldc 1\n");
-                    fprintf(OutputFile,"iload %d\n",s->index);
                     fprintf(OutputFile, "isub\n");
-                    fprintf(OutputFile,"istore %d\n",s->index);
+                    if(s->scope_level == 0)
+                        fprintf(OutputFile,"putstatic compiler_hw3/%s %c\n",s->name,t); 
+                    else                                         
+                        fprintf(OutputFile,"istore %d\n",s->index);
                 }
-            }
+            
             $$ = t;
         }
     }
@@ -978,8 +1023,10 @@ int main(int argc, char** argv)
     yyparse();
     dump_symbol(scope_state);
 	//if(!sy_error)printf("\nTotal lines: %d \n",yylineno);
-
-    return 0;
+    if(check_error)
+        return 1;
+    else
+        return 0;
 }
 
 int yyerror(char *s)
@@ -1107,6 +1154,7 @@ void dump_withoutprint(int scope){
 }
 
 void semantic_error(char * error_type){
+    check_error = 1;
     printf("\n|-----------------------------------------------|\n");
     printf("| Error found in line %d: %s", yylineno, buf);
     printf("| %s",error_type);

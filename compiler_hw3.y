@@ -188,7 +188,6 @@ declaration
         else{
             int index = create_symbol($2,scope_state,"variable",$1,0);
             struct symbol * s =lookup_symbol($2);
-            printf("%s\n",s->data_type);
             char t;
             if(strcmp(s->data_type,"int")==0){
                 t = 'I';
@@ -217,7 +216,7 @@ declaration
                     fprintf(OutputFile,"%s %s %c %c %s\n",".field public static",$2,t,'=',$4);   
             }
             else {
-                                printf("%s\n" ,$4);
+
                 if(t == 'Z'){
                     if(strcmp($4,"true")==0)
                         fprintf(OutputFile,"\t%s 1\n","ldc");
@@ -290,7 +289,10 @@ declaration
                     t = 'Z'; 
                 }
             if(scope_state==0){
-                fprintf(OutputFile,"%s %s %c = 0\n",".field public static",$2,t);   
+                if(t == 'F')
+                    fprintf(OutputFile,"%s %s %c\n",".field public static",$2,t); 
+                else 
+                    fprintf(OutputFile,".field public static %s\n",$2);  
             }
             else {
                 fprintf(OutputFile,"\t%s %d\n","ldc",0);
@@ -584,25 +586,25 @@ relational_expression
 	: shift_expression {$$ = $1;}
 	| relational_expression '<' shift_expression{
         if($3 == 'F')
-            fprintf(OutputFile,"fsub\n");
+            fprintf(OutputFile,"fsub\nf2i\n");
         else fprintf(OutputFile,"isub\n");
         $$ = '<';
     }
 	| relational_expression '>' shift_expression{
         if($3 == 'F')
-            fprintf(OutputFile,"fsub\n");
+            fprintf(OutputFile,"fsub\nf2i\n");
         else fprintf(OutputFile,"isub\n");
         $$ = '>';
     }
 	| relational_expression LE_OP shift_expression{
         if($3 == 'F')
-            fprintf(OutputFile,"fsub\n");
+            fprintf(OutputFile,"fsub\nf2i\n");
         else fprintf(OutputFile,"isub\n");
         $$ = 'L';
     }
 	| relational_expression GE_OP shift_expression{
         if($3 == 'F')
-            fprintf(OutputFile,"fsub\n");
+            fprintf(OutputFile,"fsub\nf2i\n");
         else fprintf(OutputFile,"isub\n");
         $$ = 'G';
     }
@@ -612,14 +614,15 @@ relational_expression
 equality_expression
 	: relational_expression {$$ =$1;}
 	| equality_expression EQ_OP relational_expression{
-        if($3 == 'F')
-            fprintf(OutputFile,"fsub\n");
+        if($3 == 'F'){
+            fprintf(OutputFile,"fsub\nf2i\n");
+        }
         else fprintf(OutputFile,"isub\n");
         $$ = '=';
     }
 	| equality_expression NE_OP relational_expression{
         if($3 == 'F')
-            fprintf(OutputFile,"fsub\n");
+            fprintf(OutputFile,"fsub\nf2i\n");
         else fprintf(OutputFile,"isub\n");
         $$ = '!';
     }
@@ -684,7 +687,7 @@ assignment_expression
                     if($3 == 'I')
                         fprintf(OutputFile, "i2f\n");
                     if($2 != '=')
-                        fprintf(OutputFile,"fload %d\n",s->index);
+                        fprintf(OutputFile,"fload %d\nswap\n",s->index);
                     if($2 == '+')
                         fprintf(OutputFile,"fadd\n");
                     if($2 == '-')
@@ -693,7 +696,10 @@ assignment_expression
                         fprintf(OutputFile,"fmul\n");
                     if($2 == '/')
                         fprintf(OutputFile,"fdiv\n");
-                    if($2 == '%');                                                              /*mod float error*/                                             
+                    if($2 == '%'){
+                        strcat(se_error_buff,"Arithmetic error");
+                        PrintSemeticError=1;
+                    }                                         /*mod float error*/                                             
                     fprintf(OutputFile,"fstore %d\n",s->index);
                 }
                 else{
@@ -701,7 +707,7 @@ assignment_expression
                         fprintf(OutputFile, "f2i\n");
 
                     if($2 != '=')
-                        fprintf(OutputFile,"iload %d\n",s->index);
+                        fprintf(OutputFile,"iload %d\nswap\n",s->index);
                     if($2 == '+')
                         fprintf(OutputFile,"iadd\n");
                     if($2 == '-')
@@ -967,7 +973,7 @@ initializer
 int main(int argc, char** argv)
 {
     yylineno = 0;
-    OutputFile =fopen("output.j","w");
+    OutputFile =fopen("compiler_hw3.j","w");
     fprintf(OutputFile,"%s",".class public compiler_hw3\n.super java/lang/Object\n");
     yyparse();
     dump_symbol(scope_state);
@@ -1067,20 +1073,20 @@ struct symbol * lookup_symbol(const char * name) {
 void dump_symbol(int scope) {
     if(index_stack[scope]==NULL)return;
 
-	printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
-           "Index", "Name", "Kind", "Type", "Scope", "Attribute");
+	//printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
+    //       "Index", "Name", "Kind", "Type", "Scope", "Attribute");
 	int index=0;
 	struct symbol * s;
     s=index_stack[scope];
     while(s!=NULL){
-        printf("%-10d%-10s%-12s%-10s%-10d%s\n",
-            index,s->name,s->entry_type,s->data_type,s->scope_level,s->formal_parameters);
+    //    printf("%-10d%-10s%-12s%-10s%-10d%s\n",
+    //        index,s->name,s->entry_type,s->data_type,s->scope_level,s->formal_parameters);
         index_stack[scope]=s->next_index;
         index++;
         free(s);
         s=index_stack[scope];
     }
-    printf("\n");
+    //printf("\n");
     for(int i=0;i<30;++i){
         table[scope][i]=NULL;
     }

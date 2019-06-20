@@ -19,7 +19,7 @@ y.tab.c:
 test:
 	@./${PARSER} < test.c
 	@echo -e "\n\033[1;33mmain.class output\033[0m"
-	@java -jar jasmin.jar output.j
+	@java -jar jasmin.jar compiler_hw3.j
 	@java ${FNAME} 
 
 clean:

@@ -187,31 +187,46 @@ declaration
         }
         else{
             int index = create_symbol($2,scope_state,"variable",$1,0);
+            struct symbol * s =lookup_symbol($2);
+            printf("%s\n",s->data_type);
             char t;
-                if(strcmp($1,"int")==0){
-                    t = 'I';
-                }
-                if(strcmp($1,"float")==0){
-                    t = 'F';
-                }
-                if(strcmp($1,"bool")==0){
-                    t = 'Z'; 
-                }
-                if(strcmp($1,"string")==0){
-                    t = 'S';
-                }
+            if(strcmp(s->data_type,"int")==0){
+                t = 'I';
+            }
+            if(strcmp(s->data_type,"float")==0){
+                t = 'F';
+            }
+            if(strcmp(s->data_type,"bool")==0){
+                t = 'Z'; 
+            }
+            if(strcmp(s->data_type,"string")==0){
+                t = 'S';
+            }
             if(scope_state==0){
-                fprintf(OutputFile,"%s %s %c %c %s\n",".field public static",$2,t,'=',$4);   
+
+                if(t == 'Z'){
+                    fprintf(OutputFile,"%s %s %c %c ",".field public static",$2,t,'=');
+                    if(strcmp($4,"true")==0)
+                        fprintf(OutputFile,"0\n");
+                    else if(strcmp($4,"false")==0)
+                        fprintf(OutputFile,"1\n");   
+                }
+                else if(t == 'S')
+                    fprintf(OutputFile,"%s %s %s %c \"%s\"\n",".field public static",$2,"(Ljava/lang/String;)",'=',$4); 
+                else
+                    fprintf(OutputFile,"%s %s %c %c %s\n",".field public static",$2,t,'=',$4);   
             }
             else {
+                                printf("%s\n" ,$4);
                 if(t == 'Z'){
                     if(strcmp($4,"true")==0)
-                        fprintf(OutputFile,"\t%s 1","ldc");
+                        fprintf(OutputFile,"\t%s 1\n","ldc");
                     else if(strcmp($4,"false")==0)
-                        fprintf(OutputFile,"\t%s 0","ldc");   
+                        fprintf(OutputFile,"\t%s 0\n","ldc");   
                 }
-                if(t=='S')fprintf(OutputFile,"\t%s \"%s\"\n","ldc",$4);
+                else if(t=='S')fprintf(OutputFile,"\t%s \"%s\"\n","ldc",$4);
                 else fprintf(OutputFile,"\t%s %s\n","ldc",$4);
+
                 char * dot = strchr($4,'.');
                 if (dot ==NULL && t == 'F')
                     fprintf(OutputFile,"i2f\n");
@@ -275,7 +290,7 @@ declaration
                     t = 'Z'; 
                 }
             if(scope_state==0){
-                fprintf(OutputFile,"%s %s %c\n",".field public static",$2,t);   
+                fprintf(OutputFile,"%s %s %c = 0\n",".field public static",$2,t);   
             }
             else {
                 fprintf(OutputFile,"\t%s %d\n","ldc",0);
@@ -927,6 +942,10 @@ identifier_list
             strcat(para_buf,",");
         strcat(para_buf,$1);
         create_symbol($2,scope_state+1,"parameter",$1,0);}
+;
+parameter 
+    : parameter ',' declaration
+    | declaration 
 ;
 
 type

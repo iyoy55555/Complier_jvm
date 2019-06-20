@@ -103,8 +103,8 @@ id			{letter}+({letter}|{digit})*
 "bool"  	{ CONCAT  char * t = malloc(10);strcpy(t,yytext);yylval.string=t; return BOOL;}
 
  /* boolean Keywords */
-"true"      {  CONCAT return I_CONST;}
-"false"     {  CONCAT return I_CONST;}
+"true"      {  CONCAT char * t = malloc(10);strcpy(t,yytext);yylval.string=t; return I_CONST;}
+"false"     {  CONCAT char * t = malloc(10);strcpy(t,yytext);yylval.string=t; return I_CONST;}
 
 "return"    { CONCAT return RETURN;}
 
